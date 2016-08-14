@@ -1,0 +1,83 @@
+/*
+ * Solar_Tracker1.2.cpp
+ *
+ * Created: 14-08-2016 03:56:19 PM
+ * Author : ROHIT
+ */ 
+  
+
+#define F_CPU 8000000UL
+#include <avr/io.h>
+#include <util/delay.h>
+#include <avr/interrupt.h>
+volatile unsigned int input=0,s1,s2,s3,s4;
+int main(void)
+{
+	DDRD |= 0XFF;
+	DDRB |= 0XFF;
+	
+	// for Non-Inverting PWM
+	TCCR1A |= 1<<WGM11 | 1<<COM1A1 | 1<<COM1B1;
+	TCCR1B |= 1<<WGM13 | 1<<WGM12 | 1<<CS11;
+	ICR1 = 19999;
+	
+	// For ADC Initialisation
+	ADCSRA |= 1<<ADPS2;       // enabling pre-scalar
+	ADCSRA |= 1<<ADIE;        // enabling interupt
+	ADMUX |= 1<<ADLAR;        // enabling 8-bit
+	ADMUX |= 1<<REFS0;        // max reference voltage
+	ADCSRA |= 1<<ADEN;        // turning on ADC feature
+	sei();
+	ADCSRA |= 1<<ADSC;        // ADC Start conversion
+	
+	_delay_ms(100);
+	while (1)
+	{
+		if(s1>151)
+		{
+			OCR1A = 19000;
+			OCR1B = 19000;
+			PORTB |= 1<<PINB1;
+			PORTB &= ~(1<<PINB0);
+		}
+		
+		if(s2>151)
+		{
+			OCR1A = 19000;
+			OCR1B = 19000;
+			PORTB |= 1<<PINB0;
+			PORTB &= ~(1<<PINB1);
+		}
+		else
+		{
+			PORTB &= ~(1<<PINB1);
+			PORTB &= ~(1<<PINB0);
+		}
+		
+		
+	}
+}
+
+ISR(ADC_vect)
+{
+	
+	input = ADCH ;
+	
+	switch(ADMUX)
+	{
+		
+		case 0x60:               //First Sensor
+		s1 = input;
+		ADMUX = 0x61;
+		break;
+		
+		case 0x61:               //Second Sensor
+		s2 = input;
+		ADMUX = 0x60;
+		break;
+		
+	}
+	
+	ADCSRA |= 1<<ADSC;
+}
+ 
